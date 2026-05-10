@@ -1,1 +1,1192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT Battle — Gift Simulator</title>
+    <style>
+        :root {
+            --bg: #0e0e12;
+            --surface: #1a1a22;
+            --surface2: #24242e;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ddd;
+            --text2: #999;
+            --accent: #aaa;
+            --radius: 14px;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+            --transition: 0.2s ease;
+            --common: #666;
+            --uncommon: #888;
+            --rare: #aaa;
+            --epic: #ccc;
+            --legendary: #fff;
+            --claimed: #4a4;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 60%, rgba(255, 255, 255, 0.02) 0%, transparent 60%);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #app {
+            width: 100%;
+            max-width: 960px;
+            height: 95vh;
+            max-height: 820px;
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            position: relative;
+        }
+        @media(max-width:640px) {
+            #app {
+                max-height: 100vh;
+                border-radius: 0;
+                max-width: 100%;
+            }
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            gap: 10px;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+        header .balance {
+            display: flex;
+            gap: 14px;
+            font-size: 13px;
+            font-weight: 600;
+            flex-wrap: wrap;
+        }
+        header .balance span {
+            background: var(--surface);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .stars-bal {
+            color: #ddd;
+        }
+        .ton-bal {
+            color: #ccc;
+        }
+        #page {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            scroll-behavior: smooth;
+        }
+        #page::-webkit-scrollbar {
+            width: 4px;
+        }
+        #page::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        nav {
+            display: flex;
+            background: var(--surface2);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            overflow-x: auto;
+            gap: 2px;
+            padding: 4px 6px;
+            z-index: 10;
+        }
+        nav button {
+            flex: 0 0 auto;
+            background: transparent;
+            border: none;
+            color: var(--text2);
+            padding: 10px 8px;
+            cursor: pointer;
+            font-size: 10px;
+            border-radius: 10px;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            min-width: 52px;
+            white-space: nowrap;
+            position: relative;
+        }
+        nav button.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+        }
+        nav button .nav-icon {
+            font-size: 16px;
+        }
+        .badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #fff;
+            color: #000;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 1px 5px;
+            border-radius: 8px;
+            display: none;
+            line-height: 1;
+        }
+        .btn {
+            padding: 10px 18px;
+            border-radius: 25px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: var(--transition);
+            background: var(--surface);
+            color: var(--text);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: var(--surface2);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .btn-accent {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #fff;
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 11px;
+            border-radius: 16px;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: var(--surface2);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+            gap: 10px;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn .2s;
+        }
+        .modal {
+            background: var(--surface2);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            animation: bounceIn .35s;
+        }
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20% {
+                transform: translateX(-8px);
+            }
+            40% {
+                transform: translateX(8px);
+            }
+            60% {
+                transform: translateX(-5px);
+            }
+            80% {
+                transform: translateX(5px);
+            }
+        }
+        .shaking {
+            animation: shake 0.6s ease-in-out;
+        }
+        .particle {
+            position: fixed;
+            pointer-events: none;
+            font-size: 22px;
+            z-index: 200;
+            animation: particleUp 1s ease-out forwards;
+        }
+        @keyframes particleUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(0.3);
+            }
+        }
+        .drum-container {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            margin: 20px auto;
+            position: relative;
+            transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            background: conic-gradient(#aaa 0% 45%, #555 45% 55%, #aaa 55% 100%);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+        }
+        .drum-arrow {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 26px;
+            z-index: 5;
+            color: #fff;
+            text-shadow: 0 0 6px #000;
+        }
+        .bp-track {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 8px 0;
+            display: flex;
+            gap: 6px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            margin: 8px 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .bp-seg {
+            flex: 0 0 auto;
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text2);
+            position: relative;
+        }
+        .bp-seg.reached {
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #fff;
+        }
+        .bp-seg.claimable {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            animation: pulseClaim 2s infinite;
+        }
+        @keyframes pulseClaim {
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            }
+        }
+        .bp-seg.claimed {
+            background: var(--claimed);
+            border-color: #fff;
+            color: #000;
+        }
+        .trade-slot {
+            width: 64px;
+            height: 64px;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 24px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .trade-slot.filled {
+            border-style: solid;
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: #fff;
+            font-size: 14px;
+            width: 100%;
+            outline: none;
+            transition: var(--transition);
+        }
+        input:focus {
+            border-color: #fff;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+        }
+        .page-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text2);
+            font-size: 14px;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 25px;
+            z-index: 300;
+            font-size: 13px;
+            animation: slideDown .3s ease;
+            pointer-events: none;
+            box-shadow: var(--shadow);
+            color: #fff;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header id="header">
+            <div style="font-weight:800;font-size:16px;color:#fff;">◻ NFT Battle</div>
+            <div class="balance">
+                <span class="stars-bal">◯ <span id="starsDisplay">500</span></span>
+                <span class="ton-bal">◇ <span id="tonDisplay">50</span></span>
+                <span style="font-size:11px;color:var(--text2);">Ур. <span id="bpLevelDisplay">1</span></span>
+            </div>
+            <button class="btn btn-sm" onclick="navigate('settings')" title="Настройки">⚙️</button>
+        </header>
+        <div id="page"></div>
+        <nav id="nav">
+            <button data-page="home" class="active"><span class="nav-icon">◻</span>Кейсы</button>
+            <button data-page="inventory"><span class="nav-icon">◯</span>Инвентарь</button>
+            <button data-page="upgrade"><span class="nav-icon">△</span>Апгрейд</button>
+            <button data-page="fuse"><span class="nav-icon">☆</span>Fuse</button>
+            <button data-page="battlepass"><span class="nav-icon">▽</span>BattlePass<span class="badge" id="bpBadge">0</span></button>
+            <button data-page="quests"><span class="nav-icon">⏳</span>Задания</button>
+            <button data-page="shop"><span class="nav-icon">◈</span>Shop</button>
+            <button data-page="trade" disabled><span class="nav-icon">↔</span>Trade</button>
+            <button data-page="battle" disabled><span class="nav-icon">⚔</span>Battle</button>
+            <button data-page="index"><span class="nav-icon">▦</span>Index</button>
+            <button data-page="online" disabled><span class="nav-icon">🌐</span>Онлайн</button>
+        </nav>
+    </div>
+    <div id="modalContainer"></div>
+    <div id="toastContainer"></div>
+    <script>
+        (function() {
+            // Audio
+            let audioCtx = null;
 
+            function ensureAudio() { if (!audioCtx) audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+                return audioCtx; }
+
+            function playTone(f, t, d, v = 0.06, g = 0) {
+                try {
+                    const ctx = ensureAudio();
+                    const o = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    o.type = t;
+                    o.frequency.setValueAtTime(f, ctx.currentTime);
+                    if (g) o.frequency.linearRampToValueAtTime(f + g, ctx.currentTime + d);
+                    gain.gain.setValueAtTime(v, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d);
+                    o.connect(gain);
+                    gain.connect(ctx.destination);
+                    o.start(ctx.currentTime);
+                    o.stop(ctx.currentTime + d);
+                } catch (e) {}
+            }
+
+            function sfxOpen() { playTone(500, 'square', 0.08, 0.05);
+                playTone(800, 'square', 0.06, 0.04, 200);
+                playTone(1000, 'triangle', 0.05, 0.05); }
+
+            function sfxSuccess() { playTone(523, 'triangle', 0.1, 0.06);
+                playTone(659, 'triangle', 0.08, 0.05, 100);
+                playTone(784, 'triangle', 0.07, 0.07); }
+
+            function sfxFail() { playTone(200, 'sawtooth', 0.1, 0.04);
+                playTone(150, 'sawtooth', 0.08, 0.07, -30); }
+
+            function sfxClick() { playTone(700, 'sine', 0.03, 0.03); }
+
+            function sfxSpin() { playTone(300, 'triangle', 0.25, 0.04, 400);
+                playTone(400, 'triangle', 0.2, 0.04, 200); }
+
+            function sfxWin() { playTone(660, 'square', 0.08, 0.05);
+                playTone(880, 'square', 0.07, 0.05);
+                playTone(1100, 'triangle', 0.06, 0.06); }
+
+            // Game State
+            const DEFAULT_STATE = {
+                stars: 500,
+                ton: 50,
+                inventory: [],
+                cardInventory: [],
+                bpLevel: 1,
+                bpExp: 0,
+                bpClaimedLevels: new Array(101).fill(false),
+                completedQuests: [],
+                activeQuests: [],
+                questRefreshTime: Date.now() + 10800000,
+                pityCounters: {},
+                collectibles: {},
+                achievements: [],
+                listings: [],
+                nickname: '',
+                isGuest: true,
+                recoveryPhrase: ''
+            };
+            let GS = JSON.parse(JSON.stringify(DEFAULT_STATE));
+            GS.bpClaimedLevels = new Array(101).fill(false);
+
+            function loadState() {
+                const raw = localStorage.getItem('nftBattle_save_v2');
+                if (raw) {
+                    try {
+                        const data = JSON.parse(raw);
+                        GS = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), data);
+                        if (!Array.isArray(GS.bpClaimedLevels) || GS.bpClaimedLevels.length < 101) {
+                            GS.bpClaimedLevels = new Array(101).fill(false);
+                        }
+                        if (!GS.pityCounters) GS.pityCounters = {};
+                        if (!GS.collectibles) GS.collectibles = {};
+                        if (!GS.cardInventory) GS.cardInventory = [];
+                        if (!GS.activeQuests) GS.activeQuests = [];
+                    } catch (e) { GS = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                        GS.bpClaimedLevels = new Array(101).fill(false); }
+                } else { GS = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                    GS.bpClaimedLevels = new Array(101).fill(false); }
+            }
+
+            function saveState() { localStorage.setItem('nftBattle_save_v2', JSON.stringify(GS)); }
+
+            function updateHeader() {
+                document.getElementById('starsDisplay').textContent = GS.stars.toLocaleString();
+                document.getElementById('tonDisplay').textContent = GS.ton.toLocaleString();
+                document.getElementById('bpLevelDisplay').textContent = GS.bpLevel;
+                updateBPBadge();
+            }
+
+            function updateBPBadge() {
+                const unclaimed = GS.bpClaimedLevels.filter((c, i) => i <= GS.bpLevel && i > 0 && !c).length;
+                const badge = document.getElementById('bpBadge');
+                if (badge) {
+                    badge.textContent = unclaimed || '';
+                    badge.style.display = unclaimed > 0 ? 'block' : 'none';
+                }
+            }
+
+            // Gift DB
+            const GIFT_NAMES = {
+                common: ['Звёздная пыль', 'Медная монета', 'Перо', 'Камень', 'Стеклянный шар', 'Свеча', 'Клевер', 'Ракушка',
+                    'Песочные часы', 'Гриб'
+                ],
+                uncommon: ['Серебряный слиток', 'Лунный камень', 'Кристалл', 'Жемчужина', 'Изумруд', 'Рубин', 'Сапфир',
+                    'Аметист', 'Топаз', 'Опал'
+                ],
+                rare: ['Золотой дракон', 'Феникс', 'Единорог', 'Грифон', 'Василиск', 'Ктулху-мини', 'Левиафан', 'Химера'],
+                epic: ['Меч Света', 'Щит Тьмы', 'Корона Времени', 'Посох Магии', 'Кольцо Силы', 'Амулет Души'],
+                legendary: ['NFT Алмазный Бог', 'Золотой Сатоши', 'Космический Кит', 'Вечный Дракон', 'Трон Вселенной']
+            };
+            const RARITY_ICONS = { common: '◯', uncommon: '◻', rare: '△', epic: '◇', legendary: '☆' };
+            const RARITY_COLORS = { common: '#666', uncommon: '#888', rare: '#aaa', epic: '#ccc', legendary: '#fff' };
+            const RARITY_SELL = { common: 30, uncommon: 80, rare: 200, epic: 600, legendary: 2500 };
+            const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+            const ALL_GIFTS = [];
+            RARITY_ORDER.forEach(r => {
+                GIFT_NAMES[r].forEach((name, i) => {
+                    ALL_GIFTS.push({ id: `${r}_${i}`, name, rarity: r, icon: RARITY_ICONS[r], sellPrice: RARITY_SELL[
+                            r] });
+                });
+            });
+
+            function getGiftById(id) { return ALL_GIFTS.find(g => g.id === id) || null; }
+
+            function getRandomGift(rarity) {
+                const pool = ALL_GIFTS.filter(g => g.rarity === rarity);
+                return pool[Math.floor(Math.random() * pool.length)];
+            }
+
+            // Cases
+            const CASE_TYPES = {
+                basic: { name: 'Базовый', cost: 100, odds: { common: 50, uncommon: 25, rare: 15, epic: 8,
+                    legendary: 2 } },
+                advanced: { name: 'Продвинутый', cost: 500, odds: { common: 40, uncommon: 28, rare: 18, epic: 10,
+                        legendary: 4 } },
+                luxury: { name: 'Люксовый', cost: 2000, odds: { common: 25, uncommon: 30, rare: 25, epic: 14,
+                        legendary: 6 } },
+                premium: { name: 'Премиум', cost: 10000, odds: { common: 10, uncommon: 20, rare: 30, epic: 25,
+                        legendary: 15 } },
+                bronze: { name: 'Бронзовый', cost: 50, odds: { common: 65, uncommon: 22, rare: 9, epic: 3,
+                    legendary: 1 } },
+                silver: { name: 'Серебряный', cost: 200, odds: { common: 55, uncommon: 27, rare: 13, epic: 4,
+                    legendary: 1 } },
+                gold: { name: 'Золотой', cost: 800, odds: { common: 40, uncommon: 30, rare: 20, epic: 8,
+                    legendary: 2 } },
+                platinum: { name: 'Платиновый', cost: 1500, odds: { common: 30, uncommon: 30, rare: 25, epic: 12,
+                        legendary: 3 } },
+                diamond: { name: 'Алмазный', cost: 3000, odds: { common: 20, uncommon: 28, rare: 30, epic: 18,
+                        legendary: 4 } },
+                crystal: { name: 'Хрустальный', cost: 5000, odds: { common: 15, uncommon: 25, rare: 30, epic: 22,
+                        legendary: 8 } },
+                mystic: { name: 'Мистический', cost: 8000, odds: { common: 10, uncommon: 20, rare: 35, epic: 25,
+                        legendary: 10 } },
+                shadow: { name: 'Теневой', cost: 12000, odds: { common: 5, uncommon: 15, rare: 35, epic: 30,
+                        legendary: 15 } },
+                divine: { name: 'Божественный', cost: 20000, odds: { common: 0, uncommon: 10, rare: 30, epic: 35,
+                        legendary: 25 } },
+                corrupted: { name: 'Искажённый', cost: 4000, odds: { common: 25, uncommon: 25, rare: 25, epic: 15,
+                        legendary: 10 } },
+                ancient: { name: 'Древний', cost: 6000, odds: { common: 20, uncommon: 25, rare: 30, epic: 18,
+                        legendary: 7 } },
+                elemental: { name: 'Элементальный', cost: 7000, odds: { common: 15, uncommon: 25, rare: 30, epic: 20,
+                        legendary: 10 } },
+                ethereal: { name: 'Эфирный', cost: 9000, odds: { common: 10, uncommon: 20, rare: 35, epic: 25,
+                        legendary: 10 } },
+                celestial: { name: 'Небесный', cost: 15000, odds: { common: 5, uncommon: 15, rare: 30, epic: 30,
+                        legendary: 20 } },
+                infernal: { name: 'Инфернальный', cost: 25000, odds: { common: 0, uncommon: 5, rare: 25, epic: 35,
+                        legendary: 35 } }
+            };
+
+            function rollRarity(odds) {
+                const r = Math.random() * 100;
+                let cum = 0;
+                for (const rarity of RARITY_ORDER) { cum += odds[rarity] || 0; if (r <= cum) return rarity; }
+                return 'common';
+            }
+
+            function openCase(caseType) {
+                const cfg = CASE_TYPES[caseType];
+                if (!cfg) return { error: 'Неизвестный кейс' };
+                if (GS.stars < cfg.cost) return { error: 'Недостаточно звёзд!' };
+                GS.stars -= cfg.cost;
+                if (!GS.pityCounters[caseType]) GS.pityCounters[caseType] = 0;
+                GS.pityCounters[caseType]++;
+                let rarity;
+                if (GS.pityCounters[caseType] >= 21) { rarity = 'legendary';
+                    GS.pityCounters[caseType] = 0; } else {
+                    rarity = rollRarity(cfg.odds);
+                    if (rarity === 'legendary' || rarity === 'epic') GS.pityCounters[caseType] = 0;
+                }
+                const gift = { ...getRandomGift(rarity), uid: Date.now() + Math.random().toString(36).slice(2, 8),
+                    obtainedAt: Date.now() };
+                GS.inventory.push(gift);
+                if (!GS.collectibles[gift.id]) GS.collectibles[gift.id] = 0;
+                GS.collectibles[gift.id]++;
+                addBPExp(Math.floor(cfg.cost / 10));
+                checkQuestProgress('open_case', 1);
+                if (rarity === 'legendary') checkQuestProgress('get_legendary', 1);
+                if (rarity === 'common') checkQuestProgress('get_common', 1);
+                saveState();
+                updateHeader();
+                return { gift, caseType, rarity };
+            }
+
+            // Battle Pass
+            function getBPExpForLevel(lvl) { return Math.floor(350 + lvl * 55); }
+
+            function addBPExp(amount) {
+                GS.bpExp += Math.floor(amount);
+                const oldLevel = GS.bpLevel;
+                while (GS.bpLevel < 100 && GS.bpExp >= getBPExpForLevel(GS.bpLevel)) {
+                    GS.bpExp -= getBPExpForLevel(GS.bpLevel);
+                    GS.bpLevel++;
+                }
+                if (GS.bpLevel >= 100) { GS.bpLevel = 100;
+                    GS.bpExp = 0; }
+                if (GS.bpLevel > oldLevel) {
+                    for (let l = oldLevel + 1; l <= GS.bpLevel; l++) showToast(`🏆 Достигнут уровень ${l}! Доступна награда.`);
+                }
+                saveState();
+                updateHeader();
+            }
+
+            function claimBPReward(level) {
+                if (level < 1 || level > 100 || level > GS.bpLevel || GS.bpClaimedLevels[level]) return;
+                GS.bpClaimedLevels[level] = true;
+                GS.stars += 40 + level * 8;
+                if (level % 5 === 0) {
+                    const gift = getRandomGift('uncommon');
+                    GS.inventory.push({ ...gift, uid: 'bp' + Date.now() + Math.random().toString(36).slice(2, 6),
+                        obtainedAt: Date.now() });
+                    if (!GS.collectibles[gift.id]) GS.collectibles[gift.id] = 0;
+                    GS.collectibles[gift.id]++;
+                }
+                if (level % 10 === 0) GS.ton += 4 + Math.floor(level / 5);
+                if (level % 25 === 0) {
+                    const gift = getRandomGift('epic');
+                    GS.inventory.push({ ...gift, uid: 'bp' + Date.now() + Math.random().toString(36).slice(2, 6),
+                        obtainedAt: Date.now() });
+                    if (!GS.collectibles[gift.id]) GS.collectibles[gift.id] = 0;
+                    GS.collectibles[gift.id]++;
+                }
+                saveState();
+                updateHeader();
+                sfxSuccess();
+                showToast(`✅ Награда за уровень ${level} получена!`);
+                renderPage('battlepass');
+            }
+
+            // Quests
+            function generateQuests() {
+                const templates = [
+                    { id: 'open_case', desc: 'Открыть 3 кейса', target: 3, reward: { stars: 200, exp: 300 } },
+                    { id: 'get_common', desc: 'Получить 5 Common', target: 5, reward: { stars: 150, exp: 250 } },
+                    { id: 'sell_gift', desc: 'Продать 2 подарка', target: 2, reward: { stars: 180, exp: 280 } },
+                    { id: 'upgrade_rare', desc: 'Улучшить до Rare', target: 1, reward: { stars: 300, exp: 400 } },
+                    { id: 'win_battle', desc: 'Выиграть 1 Battle', target: 1, reward: { stars: 400, exp: 500 } },
+                    { id: 'trade_once', desc: 'Обменяться 1 раз', target: 1, reward: { stars: 250, exp: 350 } },
+                ];
+                GS.activeQuests = templates.map(t => ({ ...t, progress: 0, completed: false }));
+                GS.questRefreshTime = Date.now() + 10800000;
+                saveState();
+            }
+
+            function checkQuestProgress(id, amount = 1) {
+                if (!GS.activeQuests.length || Date.now() > GS.questRefreshTime) generateQuests();
+                GS.activeQuests.forEach(q => {
+                    if (q.id === id && !q.completed) {
+                        q.progress = Math.min(q.target, q.progress + amount);
+                        if (q.progress >= q.target) {
+                            q.completed = true;
+                            GS.stars += q.reward.stars;
+                            addBPExp(q.reward.exp);
+                            showToast(`✅ Задание: ${q.desc} (+${q.reward.stars}⭐)`);
+                        }
+                    }
+                });
+                saveState();
+            }
+
+            // Upgrade
+            function getUpgradeChance(rarity) { return { common: 70, uncommon: 50, rare: 30, epic: 15 } [rarity] || 40; }
+
+            function getNextRarity(r) { const i = RARITY_ORDER.indexOf(r); return i < RARITY_ORDER.length - 1 ? RARITY_ORDER[
+                    i + 1] : null; }
+
+            function attemptUpgrade(g1, g2) {
+                if (g1.rarity !== g2.rarity) return { error: 'Разная редкость!' };
+                const next = getNextRarity(g1.rarity);
+                if (!next) return { error: 'Нельзя улучшить Legendary!' };
+                let chance = getUpgradeChance(g1.rarity) + (g1.id === g2.id ? 15 : 0);
+                const success = Math.random() * 100 < Math.min(95, chance);
+                const i1 = GS.inventory.findIndex(g => g.uid === g1.uid);
+                const i2 = GS.inventory.findIndex(g => g.uid === g2.uid);
+                if (i1 < 0 || i2 < 0) return { error: 'Не найдены' };
+                if (success) {
+                    GS.inventory.splice(Math.max(i1, i2), 1);
+                    GS.inventory.splice(Math.min(i1, i2), 1);
+                    const ng = { ...getRandomGift(next), uid: Date.now() + Math.random().toString(36).slice(2, 8),
+                        obtainedAt: Date.now() };
+                    GS.inventory.push(ng);
+                    if (!GS.collectibles[ng.id]) GS.collectibles[ng.id] = 0;
+                    GS.collectibles[ng.id]++;
+                    checkQuestProgress('upgrade_rare', next === 'rare' ? 1 : 0);
+                    addBPExp(150);
+                    saveState();
+                    updateHeader();
+                    return { success: true, gift: ng };
+                } else {
+                    const remove = Math.random() < 0.5 ? Math.max(i1, i2) : Math.min(i1, i2);
+                    GS.inventory.splice(remove, 1);
+                    saveState();
+                    updateHeader();
+                    return { success: false };
+                }
+            }
+
+            // Fuse
+            function fuseGifts(giftId) {
+                const matches = GS.inventory.filter(g => g.id === giftId);
+                if (matches.length < 5) return { error: 'Нужно 5 одинаковых!' };
+                const gift = getGiftById(giftId);
+                if (!gift) return { error: 'Нет такого подарка' };
+                const uids = matches.slice(0, 5).map(g => g.uid);
+                GS.inventory = GS.inventory.filter(g => !uids.includes(g.uid));
+                const base = RARITY_SELL[gift.rarity];
+                const bgRoll = Math.random();
+                let bgMod = 1,
+                    bgName = 'Обычный',
+                    bgCol = '#888';
+                if (bgRoll < 0.02) { bgMod = 10;
+                    bgName = 'Легендарный';
+                    bgCol = '#fff'; } else if (bgRoll < 0.08) { bgMod = 5;
+                    bgName = 'Эпический';
+                    bgCol = '#ccc'; } else if (bgRoll < 0.2) { bgMod = 2;
+                    bgName = 'Редкий';
+                    bgCol = '#aaa'; }
+                const art = Math.random() < 0.1;
+                const card = {
+                    uid: 'card_' + Date.now() + Math.random().toString(36).slice(2, 6),
+                    giftId,
+                    giftName: gift.name,
+                    rarity: gift.rarity,
+                    finalPrice: Math.floor(base * bgMod * (art ? 5 : 1)),
+                    bgName,
+                    bgCol,
+                    hasArt: art
+                };
+                GS.cardInventory.push(card);
+                addBPExp(200);
+                saveState();
+                updateHeader();
+                return { success: true, card };
+            }
+
+            // UI
+            function showToast(msg, dur = 2000) {
+                const el = document.createElement('div');
+                el.className = 'toast';
+                el.textContent = msg;
+                document.getElementById('toastContainer').appendChild(el);
+                setTimeout(() => { el.style.opacity = '0';
+                    el.style.transition = 'opacity .3s';
+                    setTimeout(() => el.remove(), 300); }, dur);
+            }
+
+            function spawnParticles(x, y, emoji, n = 10) {
+                for (let i = 0; i < n; i++) {
+                    const p = document.createElement('div');
+                    p.className = 'particle';
+                    p.textContent = emoji;
+                    p.style.left = (x + (Math.random() - 0.5) * 80) + 'px';
+                    p.style.top = (y + (Math.random() - 0.5) * 50) + 'px';
+                    document.body.appendChild(p);
+                    setTimeout(() => p.remove(), 1200);
+                }
+            }
+
+            function showModal(title, content, btns = []) {
+                const container = document.getElementById('modalContainer');
+                container.innerHTML = `
+        <div class="modal-overlay" id="modalOverlay">
+        <div class="modal"><h3>${title}</h3><div style="margin:12px 0;">${content}</div><div>${btns.map(b=>`<button class="btn ${b.cls||''}" style="margin:4px;" id="modalBtn_${b.id||'x'}">${b.text}</button>`).join('')}</div></div>
+        </div>`;
+                document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document
+                        .getElementById('modalOverlay')) closeModal(); });
+                btns.forEach(b => {
+                    const el = document.getElementById('modalBtn_' + (b.id || 'x'));
+                    if (el && b.onClick) el.addEventListener('click', () => { b.onClick();
+                        closeModal(); });
+                });
+            }
+
+            function closeModal() { document.getElementById('modalContainer').innerHTML = ''; }
+
+            // Navigation
+            let currentPage = 'home';
+
+            function navigate(page) {
+                currentPage = page;
+                document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+                const btn = document.querySelector(`nav button[data-page="${page}"]`);
+                if (btn) btn.classList.add('active');
+                window.location.hash = page;
+                renderPage(page);
+                sfxClick();
+            }
+
+            function renderPage(page) {
+                const container = document.getElementById('page');
+                if (!GS.activeQuests.length || Date.now() > GS.questRefreshTime) generateQuests();
+                switch (page) {
+                    case 'home':
+                        renderHome(container);
+                        break;
+                    case 'inventory':
+                        renderInventory(container);
+                        break;
+                    case 'upgrade':
+                        renderUpgrade(container);
+                        break;
+                    case 'fuse':
+                        renderFuse(container);
+                        break;
+                    case 'battlepass':
+                        renderBattlePass(container);
+                        break;
+                    case 'quests':
+                        renderQuests(container);
+                        break;
+                    case 'shop':
+                        renderShop(container);
+                        break;
+                    case 'trade':
+                        renderTrade(container);
+                        break;
+                    case 'battle':
+                        renderBattle(container);
+                        break;
+                    case 'index':
+                        renderIndex(container);
+                        break;
+                    case 'online':
+                        renderOnline(container);
+                        break;
+                    case 'settings':
+                        renderSettings(container);
+                        break;
+                    default:
+                        renderHome(container);
+                }
+                updateHeader();
+            }
+
+            function renderHome(container) {
+                container.innerHTML = `
+        <div class="page-title">◻ Кейсы</div>
+        <div class="grid">${Object.entries(CASE_TYPES).map(([k,cfg])=>`
+        <div class="card" id="case_${k}" style="text-align:center;">
+        <div style="font-size:36px;">◻</div>
+        <h4>${cfg.name}</h4>
+        <p style="font-size:11px;">${cfg.cost.toLocaleString()} ◯</p>
+        <button class="btn btn-accent btn-sm" onclick="openCaseUI('${k}')">Открыть</button>
+        </div>`).join('')}</div>`;
+            }
+
+            window.openCaseUI = function(caseType) {
+                const cfg = CASE_TYPES[caseType];
+                if (GS.stars < cfg.cost) return showToast('❌ Недостаточно звёзд!');
+                const cardEl = document.getElementById('case_' + caseType);
+                if (cardEl) { cardEl.classList.add('shaking');
+                    setTimeout(() => cardEl.classList.remove('shaking'), 600); }
+                sfxOpen();
+                setTimeout(() => {
+                    const result = openCase(caseType);
+                    if (result.error) return showToast('❌ ' + result.error);
+                    showModal('Результат', `
+        <div style="font-size:48px;">${result.gift.icon}</div>
+        <h3 style="color:${RARITY_COLORS[result.gift.rarity]};">${result.gift.name}</h3>
+        <p>${result.gift.rarity.toUpperCase()} | ${result.gift.sellPrice} ◯</p>`, [
+                        { text: 'OK', cls: 'btn-accent', id: 'ok', onClick: () => { sfxSuccess(); } }
+                    ]);
+                    const rect = cardEl ? cardEl.getBoundingClientRect() : { left: 300, top: 300 };
+                    spawnParticles(rect.left + rect.width / 2, rect.top, result.gift.icon, 12);
+                }, 700);
+            };
+
+            function renderInventory(container) {
+                const grouped = {};
+                GS.inventory.forEach(g => { if (!grouped[g.id]) grouped[g.id] = { ...g, count: 0,
+                    uids: [] };
+                    grouped[g.id].count++;
+                    grouped[g.id].uids.push(g.uid); });
+                container.innerHTML = `
+        <div class="page-title">◯ Инвентарь (${GS.inventory.length})</div>
+        <button class="btn btn-sm" onclick="sortInv('rarity')">По редкости</button>
+        <button class="btn btn-sm" onclick="sortInv('newest')">По дате</button>
+        ${GS.inventory.length===0?'<div class="empty-state">Пусто</div>':''}
+        <div class="grid">${Object.values(grouped).map(g=>`
+        <div class="card" style="text-align:center;" onclick="showGiftDetail('${g.uids[0]}')">
+        <div style="font-size:32px;">${g.icon}</div>
+        <div style="font-size:11px;">${g.name}</div>
+        <div style="font-size:10px;color:${RARITY_COLORS[g.rarity]};">${g.rarity.toUpperCase()} x${g.count}</div>
+        <button class="btn btn-sm" style="margin-top:4px;" onclick="event.stopPropagation();sellGift('${g.uids[0]}')">Продать</button>
+        </div>`).join('')}</div>`;
+            }
+            window.sortInv = function(by) {
+                if (by === 'rarity') GS.inventory.sort((a, b) => RARITY_ORDER.indexOf(b.rarity) - RARITY_ORDER.indexOf(a
+                    .rarity));
+                else GS.inventory.sort((a, b) => b.obtainedAt - a.obtainedAt);
+                saveState();
+                renderPage('inventory');
+            };
+            window.sellGift = function(uid) {
+                const i = GS.inventory.findIndex(g => g.uid === uid);
+                if (i < 0) return;
+                const g = GS.inventory[i];
+                GS.stars += g.sellPrice;
+                GS.inventory.splice(i, 1);
+                checkQuestProgress('sell_gift', 1);
+                saveState();
+                updateHeader();
+                showToast(`Продан за ${g.sellPrice}◯`);
+                renderPage('inventory');
+            };
+            window.showGiftDetail = function(uid) {
+                const g = GS.inventory.find(x => x.uid === uid);
+                if (!g) return;
+                showModal(g.name, `<div style="font-size:48px;">${g.icon}</div><p>${g.rarity.toUpperCase()} | ${g.sellPrice}◯</p>`, [
+                    { text: 'Продать', cls: 'btn-accent', onClick: () => { sellGift(uid);
+                            renderPage('inventory'); } },
+                    { text: 'Закрыть', onClick: () => {} }
+                ]);
+            };
+
+            function renderUpgrade(container) {
+                container.innerHTML = `
+        <div class="page-title">△ Апгрейд</div>
+        <div style="display:flex;gap:12px;justify-content:center;margin:12px 0;" id="upgSlots">
+        <div class="trade-slot" id="upg1">?</div>
+        <div class="trade-slot" id="upg2">?</div>
+        </div>
+        <div class="drum-container" id="drum"><div class="drum-arrow">▼</div></div>
+        <p id="upgChance">Шанс: —</p>
+        <button class="btn btn-accent" id="spinBtn" disabled>Крутить</button>
+        <div class="grid" style="max-height:200px;overflow-y:auto;">${GS.inventory.map(g=>`<div class="card" style="text-align:center;" onclick="selectUpg('${g.uid}')">${g.icon}<br>${g.name}</div>`).join('')}</div>`;
+                window._upgSel = [null, null];
+                document.getElementById('drum').style.transform = 'rotate(0deg)';
+                window.selectUpg = function(uid) {
+                    const g = GS.inventory.find(x => x.uid === uid);
+                    if (!g) return;
+                    if (!window._upgSel[0]) { window._upgSel[0] = g;
+                        document.getElementById('upg1').innerHTML = g.icon;
+                        document.getElementById('upg1').classList.add('filled'); } else if (!window._upgSel[1] && g
+                        .uid !== window._upgSel[0].uid) { window._upgSel[1] = g;
+                        document.getElementById('upg2').innerHTML = g.icon;
+                        document.getElementById('upg2').classList.add('filled'); }
+                    updateUpgUI();
+                };
+                window.updateUpgUI = function() {
+                    const g1 = window._upgSel[0],
+                        g2 = window._upgSel[1];
+                    const btn = document.getElementById('spinBtn');
+                    const txt = document.getElementById('upgChance');
+                    if (g1 && g2 && g1.rarity === g2.rarity && getNextRarity(g1.rarity)) {
+                        let ch = getUpgradeChance(g1.rarity) + (g1.id === g2.id ? 15 : 0);
+                        txt.textContent = `Шанс: ${Math.min(95,ch)}%`;
+                        btn.disabled = false;
+                    } else { txt.textContent = 'Выберите 2 одной редкости';
+                        btn.disabled = true; }
+                };
+                document.getElementById('spinBtn').addEventListener('click', function() {
+                    const g1 = window._upgSel[0],
+                        g2 = window._upgSel[1];
+                    if (!g1 || !g2) return;
+                    this.disabled = true;
+                    const drum = document.getElementById('drum');
+                    const ch = Math.min(95, getUpgradeChance(g1.rarity) + (g1.id === g2.id ? 15 : 0));
+                    const success = Math.random() * 100 < ch;
+                    drum.style.transform = `rotate(${success?5*360+45:5*360+135}deg)`;
+                    sfxSpin();
+                    setTimeout(() => {
+                        const res = attemptUpgrade(g1, g2);
+                        if (res.error) showToast(res.error);
+                        else if (res.success) { sfxSuccess();
+                            showToast('Успех!'); } else { sfxFail();
+                            showToast('Провал...'); }
+                        window._upgSel = [null, null];
+                        document.getElementById('upg1').innerHTML = '?';
+                        document.getElementById('upg1').classList.remove('filled');
+                        document.getElementById('upg2').innerHTML = '?';
+                        document.getElementById('upg2').classList.remove('filled');
+                        drum.style.transform = 'rotate(0deg)';
+                        renderPage('upgrade');
+                    }, 3100);
+                });
+            }
+
+            function renderFuse(container) {
+                const grouped = {};
+                GS.inventory.forEach(g => { if (!grouped[g.id]) grouped[g.id] = { ...g, count: 0 };
+                    grouped[g.id].count++; });
+                const fusible = Object.values(grouped).filter(g => g.count >= 5);
+                container.innerHTML = `
+        <div class="page-title">☆ Fuse</div>
+        ${fusible.map(g=>`<div class="card" style="text-align:center;"><span>${g.icon}</span> ${g.name} x${g.count} <button class="btn btn-accent btn-sm" onclick="doFuse('${g.id}')">Создать карточку</button></div>`).join('')}
+        <hr style="border-color:var(--border);">
+        <h4>Мои карточки (${GS.cardInventory.length})</h4>
+        <div class="grid">${GS.cardInventory.map(c=>`<div class="card" style="border:2px solid ${c.bgCol};"><b>${c.giftName}</b><br>Фон:${c.bgName} | ${c.finalPrice} TON</div>`).join('')}</div>`;
+                window.doFuse = function(id) { const r = fuseGifts(id); if (r.error) showToast(r.error); else { sfxSuccess();
+                        renderPage('fuse'); } };
+            }
+
+            function renderBattlePass(container) {
+                const unclaimed = GS.bpClaimedLevels.map((c, i) => i <= GS.bpLevel && i > 0 && !c);
+                container.innerHTML = `
+        <div class="page-title">▽ Battle Pass · Уровень ${GS.bpLevel}</div>
+        <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:4px;">
+        <div class="bp-track" id="bpTrack">${Array.from({length:100},(_,i)=>`
+        <div class="bp-seg ${i+1<GS.bpLevel?'reached':''} ${i+1===GS.bpLevel?'current':''} ${unclaimed[i+1]?'claimable':''} ${GS.bpClaimedLevels[i+1]?'claimed':''}" 
+        onclick="claimBPReward(${i+1})" title="Ур.${i+1}">${i+1}</div>`).join('')}</div>
+        </div>
+        <p style="font-size:11px;">${GS.bpExp} / ${getBPExpForLevel(GS.bpLevel)} EXP</p>`;
+            }
+
+            function renderQuests(container) {
+                container.innerHTML = `
+        <div class="page-title">⏳ Задания (обновление: ${new Date(GS.questRefreshTime).toLocaleTimeString()})</div>
+        ${GS.activeQuests.map(q=>`
+        <div class="card" style="margin:6px 0;opacity:${q.completed?0.5:1};">
+        <div>${q.completed?'✅':''} ${q.desc} (${q.progress}/${q.target})</div>
+        <small>+${q.reward.stars}◯ +${q.reward.exp}EXP</small>
+        </div>`).join('')}`;
+            }
+
+            function renderShop(container) {
+                container.innerHTML =
+                    `<div class="page-title">◈ Shop</div><p>Торговая площадка временно недоступна. Ваши карточки:</p><div class="grid">${GS.cardInventory.map(c=>`<div class="card">${c.giftName} | ${c.finalPrice} TON</div>`).join('')}</div>`;
+            }
+
+            function renderTrade(container) { container.innerHTML =
+                '<div class="page-title">↔ Trade</div><p>Торговля недоступна в оффлайн-режиме.</p>'; }
+
+            function renderBattle(container) { container.innerHTML =
+                '<div class="page-title">⚔ Battle</div><p>PvP битвы недоступны без сети.</p>'; }
+
+            function renderIndex(container) {
+                const coll = Object.keys(GS.collectibles).length;
+                container.innerHTML = `
+        <div class="page-title">▦ Индекс (${coll}/${ALL_GIFTS.length})</div>
+        <div class="grid">${ALL_GIFTS.map(g=>`<div class="card" style="opacity:${GS.collectibles[g.id]?1:0.3};text-align:center;">${g.icon}<br>${GS.collectibles[g.id]?g.name:'???'}</div>`).join('')}</div>`;
+            }
+
+            function renderOnline(container) { container.innerHTML =
+                '<div class="page-title">🌐 Онлайн</div><p>Список игроков пуст.</p>'; }
+
+            function renderSettings(container) {
+                container.innerHTML = `
+        <div class="page-title">⚙️ Настройки</div>
+        <p>Ник: ${GS.nickname||'Гость'}</p>
+        <button class="btn" onclick="exportSave()">Экспорт</button>
+        <button class="btn" onclick="importSave()">Импорт</button>
+        <button class="btn" style="color:#f66;" onclick="resetProgress()">Сброс</button>`;
+            }
+
+            window.exportSave = function() {
+                const blob = new Blob([JSON.stringify(GS)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'nft_save.json';
+                a.click();
+            };
+            window.importSave = function() {
+                const i = document.createElement('input');
+                i.type = 'file';
+                i.accept = '.json';
+                i.onchange = e => {
+                    const f = e.target.files[0];
+                    if (!f) return;
+                    const r = new FileReader();
+                    r.onload = ev => {
+                        try {
+                            const d = JSON.parse(ev.target.result);
+                            if (typeof d.stars === 'number') { GS = d;
+                                saveState();
+                                updateHeader();
+                                navigate('home'); } else showToast('Неверный файл');
+                        } catch (ex) { showToast('Ошибка'); }
+                    };
+                    r.readAsText(f);
+                };
+                i.click();
+            };
+            window.resetProgress = function() {
+                if (confirm('Сбросить всё?')) { localStorage.removeItem('nftBattle_save_v2');
+                    GS = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                    GS.bpClaimedLevels = new Array(101).fill(false);
+                    saveState();
+                    updateHeader();
+                    navigate('home'); }
+            };
+
+            // Init
+            loadState();
+            updateHeader();
+            window.addEventListener('hashchange', () => navigate(window.location.hash.replace('#', '') || 'home'));
+            document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+                if (!b.disabled) navigate(b.dataset.page);
+            }));
+            navigate('home');
+        })();
+    </script>
+</body>
+</html>
